@@ -1,0 +1,37 @@
+language: python
+python:
+  - "3.6"
+
+services:
+  - docker
+
+before_script:
+  - pip install docker-compose
+  - pip install --user awscli
+
+before_install:
+  - ./ecr_credentials.sh
+
+script:
+  - ./mvnw jib:dockerBuild
+
+after_success:
+  - ./mvnw jib:dockerBuild
+  - docker tag darglk/blog-auth:latest 613325558513.dkr.ecr.us-east-1.amazonaws.com/blog-auth:latest
+  # Log in to the ECR
+  - aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 613325558513.dkr.ecr.us-east-1.amazonaws.com
+  # Take those images and push them to ecr
+  - docker push 613325558513.dkr.ecr.us-east-1.amazonaws.com/blog-auth:latest
+
+#deploy:
+##  edge: true
+##  provider: elasticbeanstalk
+##  region: eu-west-1
+##  app: emles-distro
+##  env: EmlesDistro-env
+##  bucket_name: elasticbeanstalk-eu-west-1-246484776318
+##  bucket_path: emles-distro
+#  on:
+#    branch: master
+#  access_key_id: $AWS_ACCESS_KEY
+#  secret_access_key: $AWS_SECRET_KEY
