@@ -1,8 +1,8 @@
 package com.darglk.blogauth.service;
 
 import com.darglk.blogauth.connector.KeycloakConnector;
-import com.darglk.blogauth.rest.model.LoginRequest;
 import com.darglk.blogauth.rest.model.LoginResponse;
+import com.darglk.blogcommons.model.LoginRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 

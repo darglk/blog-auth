@@ -4,7 +4,7 @@ import com.darglk.blogauth.BlogAuthApplication;
 import com.darglk.blogauth.config.TestConfiguration;
 import com.darglk.blogauth.connector.KeycloakConnector;
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
-import com.darglk.blogauth.rest.model.LoginRequest;
+import com.darglk.blogcommons.model.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +39,7 @@ public class UsersControllerTest {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    public void testSignIn() throws Exception {
+    public void testSignIn_success() throws Exception {
         var keycloakLoginResponse = new KeycloakLoginResponse();
         keycloakLoginResponse.setAccessToken("access_token");
         keycloakLoginResponse.setRefreshToken("refresh_token");
@@ -53,5 +53,16 @@ public class UsersControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").value("access_token"))
                 .andExpect(jsonPath("$.refreshToken").value("refresh_token"));
+    }
+
+    @Test
+    public void testSignIn_incorrectEmail() throws Exception {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("");
+        request.setPassword("asdf123");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/login")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
     }
 }

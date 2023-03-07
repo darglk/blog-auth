@@ -1,7 +1,7 @@
 package com.darglk.blogauth.connector;
 
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
-import com.darglk.blogauth.rest.model.LoginRequest;
+import com.darglk.blogcommons.model.LoginRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Profile;
