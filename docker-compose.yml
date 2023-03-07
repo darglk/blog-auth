@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:latest
+    #    volumes:
+    #      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    restart: always
+    environment:
+      POSTGRES_DB: blog-auth
+      POSTGRES_USER: blog-auth
+      POSTGRES_PASSWORD: blog-auth
+    networks:
+      - default
