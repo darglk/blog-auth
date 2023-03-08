@@ -3,6 +3,7 @@ package com.darglk.blogauth.rest;
 import com.darglk.blogauth.BlogAuthApplication;
 import com.darglk.blogauth.config.TestConfiguration;
 import com.darglk.blogauth.connector.KeycloakConnector;
+import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
 import com.darglk.blogcommons.model.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,10 +19,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(
@@ -36,6 +39,10 @@ public class UsersControllerTest {
     private MockMvc mockMvc;
     @Autowired
     private KeycloakConnector keycloakConnector;
+    @Autowired
+    private UserRepository userRepository;
+
+    private final String accessToken = "4a42f24d-208e-4e08-8f1f-51db0b960a4f:ROLE_USER,ROLE_ADMIN";
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
@@ -63,6 +70,17 @@ public class UsersControllerTest {
         mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/login")
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("email"))
+                .andExpect(jsonPath("$.errors.[0].message").value("may not be empty"));
+    }
+
+    @Test
+    public void testCurrentUser_success() throws Exception {
+        mockMvc.perform(request(HttpMethod.GET, "/api/v1/users/current-user")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 }

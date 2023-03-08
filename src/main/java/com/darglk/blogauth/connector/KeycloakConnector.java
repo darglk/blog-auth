@@ -1,8 +1,10 @@
 package com.darglk.blogauth.connector;
 
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
+import com.darglk.blogcommons.exception.BadRequestException;
 import com.darglk.blogcommons.model.LoginRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpEntity;
@@ -20,6 +22,14 @@ import java.util.List;
 @Slf4j
 @Profile("!test")
 public class KeycloakConnector {
+
+    @Value("${keycloak.server.url}")
+    private String keycloakServerUrl;
+    @Value("${keycloak.server.port}")
+    private String keycloakServerPort;
+    @Value("${keycloak.api.realm}")
+    private String keycloakApiRealm;
+
     private final RestTemplate restTemplate;
 
     public KeycloakConnector() {
@@ -38,12 +48,13 @@ public class KeycloakConnector {
         map.put("password", List.of(loginRequest.getPassword()));
         var httpEntity = new HttpEntity<MultiValueMap<String, String>>(map, httpHeaders);
         try {
-            var uri = new URI("http://keycloak-srv:8080/realms/blog/protocol/openid-connect/token");
+            var url = String.format("http://%s:%s/realms/%s/protocol/openid-connect/token",
+                    keycloakServerUrl, keycloakServerPort, keycloakApiRealm);
+            var uri = new URI(url);
             return restTemplate.postForEntity(uri, httpEntity, KeycloakLoginResponse.class).getBody();
         } catch (Exception e) {
-            e.printStackTrace();
-            log.error("Coś jebło");
+            log.error("Keycloak login endpoint returned errors: {}", e.getMessage());
+            throw new BadRequestException("Invalid login credentials");
         }
-        return null;
     }
 }

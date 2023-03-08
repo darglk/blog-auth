@@ -5,16 +5,14 @@ import com.darglk.blogauth.service.UsersService;
 import com.darglk.blogcommons.exception.ValidationException;
 import com.darglk.blogcommons.model.LoginRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.Errors;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 
-@RestController
 @RequestMapping("/api/v1/users")
+@RestController
 @RequiredArgsConstructor
 public class UsersController {
 
@@ -26,5 +24,10 @@ public class UsersController {
             throw new ValidationException(errors);
         }
         return usersService.login(loginRequest);
+    }
+
+    @GetMapping("/current-user")
+    public String currentUser() {
+        return SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
     }
 }
