@@ -55,6 +55,14 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- https://mvnrepository.com/artifact/org.springframework.amqp/spring-rabbit-test -->
+		<dependency>
+			<groupId>org.springframework.amqp</groupId>
+			<artifactId>spring-rabbit-test</artifactId>
+			<version>2.4.10</version>
+			<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>

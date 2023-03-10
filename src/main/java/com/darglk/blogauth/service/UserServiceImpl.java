@@ -30,7 +30,7 @@ public class UserServiceImpl implements UsersService {
         var loginResponse = new LoginResponse();
         loginResponse.setRefreshToken(kcResponse.getRefreshToken());
         loginResponse.setAccessToken(kcResponse.getAccessToken());
-        rabbitTemplate.convertAndSend(Subjects.UserCreated.getSubject(), "WYKURWIŚCIE");
+        rabbitTemplate.convertAndSend(Subjects.UserCreated.getSubject(), "asdf");
         return loginResponse;
     }
 
