@@ -1,6 +1,8 @@
 package com.darglk.blogauth.rest;
 
 import com.darglk.blogauth.rest.model.LoginResponse;
+import com.darglk.blogauth.rest.model.SignupRequest;
+import com.darglk.blogauth.rest.model.SignupResponse;
 import com.darglk.blogauth.service.UsersService;
 import com.darglk.blogcommons.exception.ValidationException;
 import com.darglk.blogcommons.model.LoginRequest;
@@ -29,5 +31,13 @@ public class UsersController {
     @GetMapping("/current-user")
     public String currentUser() {
         return SecurityContextHolder.getContext().getAuthentication().getPrincipal().toString();
+    }
+
+    @PostMapping("/signup")
+    public SignupResponse signup(@RequestBody @Valid SignupRequest signupRequest, Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ValidationException(errors);
+        }
+        return usersService.signup(signupRequest);
     }
 }

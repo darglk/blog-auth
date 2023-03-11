@@ -3,10 +3,16 @@ package com.darglk.blogauth.rest;
 import com.darglk.blogauth.BlogAuthApplication;
 import com.darglk.blogauth.config.TestConfiguration;
 import com.darglk.blogauth.connector.KeycloakConnector;
+import com.darglk.blogauth.connector.KeycloakRealm;
+import com.darglk.blogauth.repository.AuthorityRepository;
+import com.darglk.blogauth.repository.UserAuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
+import com.darglk.blogauth.repository.entity.AuthorityEntity;
+import com.darglk.blogauth.repository.entity.UserEntity;
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
 import com.darglk.blogcommons.model.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,9 +25,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -40,10 +50,22 @@ public class UsersControllerTest {
     @Autowired
     private KeycloakConnector keycloakConnector;
     @Autowired
+    private KeycloakRealm keycloakRealm;
+    @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AuthorityRepository authorityRepository;
+    @Autowired
+    private UserAuthorityRepository userAuthorityRepository;
 
     private final String accessToken = "4a42f24d-208e-4e08-8f1f-51db0b960a4f:ROLE_USER,ROLE_ADMIN";
     private ObjectMapper objectMapper = new ObjectMapper();
+
+    @AfterEach
+    public void teardown() {
+        userAuthorityRepository.deleteAll();
+        userRepository.deleteAll();
+    }
 
     @Test
     public void testSignIn_success() throws Exception {
@@ -82,5 +104,89 @@ public class UsersControllerTest {
                         .header("Authorization", "Bearer " + accessToken)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testSignUp_incorrectEmail() throws Exception {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("");
+        request.setPassword("asdf123");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/signup")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("email"))
+                .andExpect(jsonPath("$.errors.[0].message").value("must not be blank"));
+
+        request.setEmail("testing.incorerectemail");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/signup")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("email"))
+                .andExpect(jsonPath("$.errors.[0].message").value("must be a well-formed email address"));
+    }
+
+    @Test
+    public void testSignUp_incorrectPassword() throws Exception {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("testing@test.com");
+        request.setPassword("");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/signup")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("password"))
+                .andExpect(jsonPath("$.errors.[0].message").value("must not be blank"));
+    }
+
+    @Test
+    public void testSignUp_emailExists() throws Exception {
+        createUser();
+        LoginRequest request = new LoginRequest();
+        request.setEmail("testing@test.com");
+        request.setPassword("asdf1234");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/signup")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("email"))
+                .andExpect(jsonPath("$.errors.[0].message").value("email is taken"));
+    }
+
+    @Test
+    public void testSignUp() throws Exception {
+        var userId = "user_id";
+        when(keycloakRealm.createUser(any())).thenReturn(userId);
+        LoginRequest request = new LoginRequest();
+        request.setEmail("testing@test.com");
+        request.setPassword("asdf1234");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/signup")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(userId));
+
+        var user = userRepository.findById(userId);
+        assertTrue(user.isPresent());
+        assertFalse(user.get().getEnabled());
+        verify(keycloakRealm, times(1)).createUser(any());
+        // sprawdz czy token sie wygenerowal
+    }
+
+    private void createUser() {
+        var authority = new AuthorityEntity();
+        authority.setId("ROLE_USER");
+        authority.setName("ROLE_USER");
+        var user = new UserEntity();
+        user.setEmail("testing@test.com");
+        user.setId("user_id");
+        user.setEnabled(true);
+        user.setAuthorities(List.of(authority));
+        userRepository.save(user);
     }
 }

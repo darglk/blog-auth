@@ -1,6 +1,7 @@
 package com.darglk.blogauth.config;
 
 import com.darglk.blogauth.connector.KeycloakConnector;
+import com.darglk.blogauth.connector.KeycloakRealm;
 import com.rabbitmq.client.Channel;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
@@ -27,6 +28,10 @@ public class TestConfiguration {
     public KeycloakConnector keycloakConnector() {
         return mock(KeycloakConnector.class);
     }
+
+    @Bean
+    @Profile("test")
+    public KeycloakRealm keycloakRealm() { return mock(KeycloakRealm.class); }
 
     @Bean
     public TestRabbitTemplate template() throws IOException {

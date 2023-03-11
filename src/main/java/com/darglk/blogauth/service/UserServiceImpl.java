@@ -1,10 +1,17 @@
 package com.darglk.blogauth.service;
 
 import com.darglk.blogauth.connector.KeycloakConnector;
+import com.darglk.blogauth.connector.KeycloakRealm;
+import com.darglk.blogauth.repository.AuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
+import com.darglk.blogauth.repository.entity.UserEntity;
 import com.darglk.blogauth.rest.model.LoginResponse;
+import com.darglk.blogauth.rest.model.SignupRequest;
+import com.darglk.blogauth.rest.model.SignupResponse;
 import com.darglk.blogcommons.events.Subjects;
+import com.darglk.blogcommons.exception.ErrorResponse;
 import com.darglk.blogcommons.exception.NotFoundException;
+import com.darglk.blogcommons.exception.ValidationException;
 import com.darglk.blogcommons.model.AuthorityResponse;
 import com.darglk.blogcommons.model.LoginRequest;
 import com.darglk.blogcommons.model.UserResponse;
@@ -14,6 +21,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,7 +29,9 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UsersService {
 
     private final KeycloakConnector keycloakConnector;
+    private final KeycloakRealm realm;
     private final UserRepository userRepository;
+    private final AuthorityRepository authorityRepository;
     private final RabbitTemplate rabbitTemplate;
 
     @Override
@@ -30,7 +40,7 @@ public class UserServiceImpl implements UsersService {
         var loginResponse = new LoginResponse();
         loginResponse.setRefreshToken(kcResponse.getRefreshToken());
         loginResponse.setAccessToken(kcResponse.getAccessToken());
-        rabbitTemplate.convertAndSend(Subjects.UserCreated.getSubject(), "asdf");
+
         return loginResponse;
     }
 
@@ -52,6 +62,25 @@ public class UserServiceImpl implements UsersService {
                 .collect(Collectors.toList()));
 
         return userResponse;
+    }
+
+    @Override
+    @Transactional
+    public SignupResponse signup(SignupRequest signupRequest) {
+        userRepository.findByEmail(signupRequest.getEmail()).ifPresent(user -> {
+            throw new ValidationException(List.of(new ErrorResponse("email is taken", "email")));
+        });
+        var userId = realm.createUser(signupRequest);
+        var userAuthority = authorityRepository.findById("ROLE_USER").get();
+        var newUser = new UserEntity();
+        newUser.setAuthorities(List.of(userAuthority));
+        newUser.setEmail(signupRequest.getEmail());
+        newUser.setEnabled(false);
+        newUser.setId(userId);
+        userRepository.save(newUser);
+        rabbitTemplate.convertAndSend(Subjects.UserCreated.getSubject(), userId);
+
+        return new SignupResponse(userId);
     }
 
     @RabbitListener(queues = "user_created")
