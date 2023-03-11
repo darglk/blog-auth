@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface UserAuthorityRepository extends JpaRepository<UserAuthorityEntity, String> {
+    void deleteAllByUserId(String userId);
 }

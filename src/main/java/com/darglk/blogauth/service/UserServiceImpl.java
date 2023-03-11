@@ -33,6 +33,7 @@ public class UserServiceImpl implements UsersService {
     private final UserRepository userRepository;
     private final AuthorityRepository authorityRepository;
     private final RabbitTemplate rabbitTemplate;
+    private final AccountActivationTokenService accountActivationTokenService;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
@@ -78,6 +79,8 @@ public class UserServiceImpl implements UsersService {
         newUser.setEnabled(false);
         newUser.setId(userId);
         userRepository.save(newUser);
+        var token = accountActivationTokenService.generateToken(userId);
+        // TODO: pass token to message
         rabbitTemplate.convertAndSend(Subjects.UserCreated.getSubject(), userId);
 
         return new SignupResponse(userId);

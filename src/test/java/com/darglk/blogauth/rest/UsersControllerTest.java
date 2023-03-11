@@ -4,6 +4,7 @@ import com.darglk.blogauth.BlogAuthApplication;
 import com.darglk.blogauth.config.TestConfiguration;
 import com.darglk.blogauth.connector.KeycloakConnector;
 import com.darglk.blogauth.connector.KeycloakRealm;
+import com.darglk.blogauth.repository.AccountActivationTokenRepository;
 import com.darglk.blogauth.repository.AuthorityRepository;
 import com.darglk.blogauth.repository.UserAuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
@@ -57,12 +58,15 @@ public class UsersControllerTest {
     private AuthorityRepository authorityRepository;
     @Autowired
     private UserAuthorityRepository userAuthorityRepository;
+    @Autowired
+    private AccountActivationTokenRepository accountActivationTokenRepository;
 
     private final String accessToken = "4a42f24d-208e-4e08-8f1f-51db0b960a4f:ROLE_USER,ROLE_ADMIN";
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @AfterEach
     public void teardown() {
+        accountActivationTokenRepository.deleteAll();
         userAuthorityRepository.deleteAll();
         userRepository.deleteAll();
     }
@@ -172,10 +176,11 @@ public class UsersControllerTest {
                 .andExpect(jsonPath("$.id").value(userId));
 
         var user = userRepository.findById(userId);
+        var token = accountActivationTokenRepository.findByUserId(userId);
         assertTrue(user.isPresent());
         assertFalse(user.get().getEnabled());
+        assertTrue(token.isPresent());
         verify(keycloakRealm, times(1)).createUser(any());
-        // sprawdz czy token sie wygenerowal
     }
 
     private void createUser() {
