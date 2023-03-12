@@ -7,6 +7,7 @@ import com.darglk.blogauth.rest.model.SignupResponse;
 import com.darglk.blogauth.service.UsersService;
 import com.darglk.blogcommons.exception.ValidationException;
 import com.darglk.blogcommons.model.LoginRequest;
+import com.darglk.blogcommons.model.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -56,5 +57,11 @@ public class UsersController {
             throw new ValidationException(errors);
         }
         return usersService.refreshToken(request);
+    }
+
+    @DeleteMapping
+    public void deleteAccount() {
+        var userId = ((UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId();
+        usersService.deleteAccount(userId);
     }
 }

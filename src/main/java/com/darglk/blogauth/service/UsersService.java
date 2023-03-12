@@ -17,4 +17,6 @@ public interface UsersService {
     void logout(Boolean allSessions);
 
     LoginResponse refreshToken(RefreshTokenRequest request);
+
+    void deleteAccount(String userId);
 }

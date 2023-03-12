@@ -217,6 +217,18 @@ public class UsersControllerTest {
         verify(keycloakConnector, times(1)).refreshToken("refresh_token");
     }
 
+    @Test
+    public void deleteAccount() throws Exception {
+        createUser();
+        mockMvc.perform(request(HttpMethod.DELETE, "/api/v1/users")
+                        .header("Authorization", "Bearer user_id:ROLE_USER")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+        var user = userRepository.findById("user_id");
+        assertTrue(user.isEmpty());
+        verify(keycloakRealm, times(1)).deleteUser("user_id");
+    }
+
     private void createUser() {
         var authority = new AuthorityEntity();
         authority.setId("ROLE_USER");

@@ -48,6 +48,10 @@ public class KeycloakRealm {
         user.update(userRepresentation);
     }
 
+    public void deleteUser(String userId) {
+        realm.users().get(userId).remove();
+    }
+
     public void logoutAllSessions(String userId) {
         realm.users().get(userId).logout();
     }

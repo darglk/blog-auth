@@ -110,6 +110,14 @@ public class UserServiceImpl implements UsersService {
         return loginResponse;
     }
 
+    @Override
+    @Transactional
+    public void deleteAccount(String userId) {
+        userRepository.deleteById(userId);
+        realm.deleteUser(userId);
+        // TODO: send message to queue
+    }
+
     @RabbitListener(queues = "user_created")
     public void listen(String in) {
         System.out.println(in);
