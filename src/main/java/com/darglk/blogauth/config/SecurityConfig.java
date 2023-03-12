@@ -53,7 +53,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         webSecurity.ignoring()
                 .antMatchers("/api/v1/users/login")
                 .antMatchers("/api/v1/users/signup")
-                .antMatchers("/api/v1/users/token/{tokenId}")
+                .antMatchers("/api/v1/users/account-activation/{tokenId}")
+                .antMatchers("/api/v1/users/password-reset")
+                .antMatchers("/api/v1/users/password-reset/verify/{tokenId}")
                 .antMatchers("/api-internal/users/{id}");
     }
 
@@ -61,7 +63,13 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.cors().and().csrf().disable()
                 .authorizeRequests()
-                .antMatchers("/api/v1/users/login", "/api/v1/users/signup", "/api/v1/users/token/{tokenId}")
+                .antMatchers(
+                        "/api/v1/users/login",
+                        "/api/v1/users/signup",
+                        "/api/v1/users/account-activation/{tokenId}",
+                        "/api/v1/users/password-reset",
+                        "/api/v1/users/password-reset/verify/{tokenId}"
+                )
                 .permitAll().and()
                 .authorizeRequests()
                 .anyRequest().authenticated()

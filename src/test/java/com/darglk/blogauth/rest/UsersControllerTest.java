@@ -6,7 +6,6 @@ import com.darglk.blogauth.connector.KeycloakConnector;
 import com.darglk.blogauth.connector.KeycloakRealm;
 import com.darglk.blogauth.repository.AccountActivationTokenRepository;
 import com.darglk.blogauth.repository.AuthorityRepository;
-import com.darglk.blogauth.repository.UserAuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.AuthorityEntity;
 import com.darglk.blogauth.repository.entity.UserEntity;
@@ -57,8 +56,6 @@ public class UsersControllerTest {
     @Autowired
     private AuthorityRepository authorityRepository;
     @Autowired
-    private UserAuthorityRepository userAuthorityRepository;
-    @Autowired
     private AccountActivationTokenRepository accountActivationTokenRepository;
 
     private final String accessToken = "4a42f24d-208e-4e08-8f1f-51db0b960a4f:ROLE_USER,ROLE_ADMIN";
@@ -67,7 +64,6 @@ public class UsersControllerTest {
     @AfterEach
     public void teardown() {
         accountActivationTokenRepository.deleteAll();
-        userAuthorityRepository.deleteAll();
         userRepository.deleteAll();
     }
 

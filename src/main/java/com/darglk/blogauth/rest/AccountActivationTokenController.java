@@ -5,7 +5,7 @@ import com.darglk.blogauth.service.AccountActivationTokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/api/v1/users/token")
+@RequestMapping("/api/v1/users/account-activation")
 @RestController
 @RequiredArgsConstructor
 public class AccountActivationTokenController {

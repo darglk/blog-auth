@@ -1,7 +1,6 @@
 package com.darglk.blogauth.service;
 
 import com.darglk.blogauth.repository.AccountActivationTokenRepository;
-import com.darglk.blogauth.repository.UserAuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.AccountActivationTokenEntity;
 import com.darglk.blogcommons.exception.ErrorResponse;
@@ -27,7 +26,6 @@ public class AccountActivationTokenServiceImpl implements AccountActivationToken
     @Value("${users.account-activation-token.expiration.hours}")
     private Long accountExpirationHours;
     private final AccountActivationTokenRepository accountActivationTokenRepository;
-    private final UserAuthorityRepository userAuthorityRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -57,7 +55,8 @@ public class AccountActivationTokenServiceImpl implements AccountActivationToken
         var userId = accountActivationToken.getUserId();
         accountActivationTokenRepository.deleteByUserId(userId);
         if (accountActivationToken.getCreatedAt().plus(accountExpirationHours, HOURS).isBefore(Instant.now())) {
-            // TODO delete and notify user
+            // TODO notify user
+            userRepository.deleteById(userId);
             throw new ValidationException(List.of(new ErrorResponse("Token is expired", "token")));
         }
         var user = userRepository.findById(userId)
@@ -65,6 +64,4 @@ public class AccountActivationTokenServiceImpl implements AccountActivationToken
         user.setEnabled(true);
         userRepository.save(user);
     }
-
-
 }

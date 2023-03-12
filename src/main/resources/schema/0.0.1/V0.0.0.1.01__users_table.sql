@@ -10,8 +10,8 @@ CREATE TABLE authorities (
 );
 
 CREATE TABLE users_authorities(
-    user_id VARCHAR(36) NOT NULL REFERENCES users (id),
-    authority_id VARCHAR(36) NOT NULL REFERENCES authorities (id)
+    user_id VARCHAR(36) NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    authority_id VARCHAR(36) NOT NULL REFERENCES authorities (id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX users_authorities_idx ON users_authorities (user_id, authority_id);

@@ -4,7 +4,6 @@ import com.darglk.blogauth.BlogAuthApplication;
 import com.darglk.blogauth.config.TestConfiguration;
 import com.darglk.blogauth.repository.AccountActivationTokenRepository;
 import com.darglk.blogauth.repository.AuthorityRepository;
-import com.darglk.blogauth.repository.UserAuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.AccountActivationTokenEntity;
 import com.darglk.blogauth.repository.entity.AuthorityEntity;
@@ -51,8 +50,6 @@ public class AccountActivationTokenControllerTest {
     @Autowired
     private AuthorityRepository authorityRepository;
     @Autowired
-    private UserAuthorityRepository userAuthorityRepository;
-    @Autowired
     private AccountActivationTokenRepository accountActivationTokenRepository;
 
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -69,7 +66,6 @@ public class AccountActivationTokenControllerTest {
     @AfterEach
     public void teardown() {
         accountActivationTokenRepository.deleteAll();
-        userAuthorityRepository.deleteAll();
         userRepository.deleteAll();
     }
 
@@ -77,7 +73,7 @@ public class AccountActivationTokenControllerTest {
     void verifyToken_notFound() throws Exception {
         var request = new VerifyAccountActivationTokenRequest("tokennotexist");
 
-        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/token/asdf")
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/account-activation/asdf")
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isNotFound())
@@ -89,7 +85,7 @@ public class AccountActivationTokenControllerTest {
     void verifyToken_tokensDoNotMatch() throws Exception {
         var request = new VerifyAccountActivationTokenRequest("tokennotexist");
 
-        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/token/" + tokenId)
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/account-activation/" + tokenId)
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
@@ -105,7 +101,7 @@ public class AccountActivationTokenControllerTest {
 
         var request = new VerifyAccountActivationTokenRequest(token);
 
-        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/token/" + tokenId)
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/account-activation/" + tokenId)
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
@@ -113,13 +109,14 @@ public class AccountActivationTokenControllerTest {
                 .andExpect(jsonPath("$.errors.[0].message").value("Token is expired"));
 
         assertTrue(accountActivationTokenRepository.findById(tokenId).isEmpty());
+        assertTrue(userRepository.findById(userId).isEmpty());
     }
 
     @Test
     void verifyToken() throws Exception {
         var request = new VerifyAccountActivationTokenRequest(token);
 
-        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/token/" + tokenId)
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/account-activation/" + tokenId)
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());

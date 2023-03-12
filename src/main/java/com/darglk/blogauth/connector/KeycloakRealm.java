@@ -36,4 +36,15 @@ public class KeycloakRealm {
         return response.getHeaderString("Location")
                 .split("(?<=\\/" + realmName + "\\/users\\/)")[1];
     }
+
+    public void updatePassword(String userId, String newPassword) {
+        var credentialsRepresentation = new CredentialRepresentation();
+        credentialsRepresentation.setTemporary(false);
+        credentialsRepresentation.setType(CredentialRepresentation.PASSWORD);
+        credentialsRepresentation.setValue(newPassword);
+        var user = realm.users().get(userId);
+        var userRepresentation = user.toRepresentation();
+        userRepresentation.setCredentials(List.of(credentialsRepresentation));
+        user.update(userRepresentation);
+    }
 }

@@ -20,7 +20,7 @@
 		<dependency>
 			<groupId>com.darglk</groupId>
 			<artifactId>blog-commons</artifactId>
-			<version>0.0.16-SNAPSHOT</version>
+			<version>0.0.17-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
