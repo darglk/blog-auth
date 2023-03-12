@@ -1,6 +1,7 @@
 package com.darglk.blogauth.service;
 
 import com.darglk.blogauth.rest.model.LoginResponse;
+import com.darglk.blogauth.rest.model.RefreshTokenRequest;
 import com.darglk.blogauth.rest.model.SignupRequest;
 import com.darglk.blogauth.rest.model.SignupResponse;
 import com.darglk.blogcommons.model.LoginRequest;
@@ -14,4 +15,6 @@ public interface UsersService {
     SignupResponse signup(SignupRequest signupRequest);
 
     void logout(Boolean allSessions);
+
+    LoginResponse refreshToken(RefreshTokenRequest request);
 }

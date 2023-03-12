@@ -57,4 +57,24 @@ public class KeycloakConnector {
             throw new BadRequestException("Invalid login credentials");
         }
     }
+
+    public KeycloakLoginResponse refreshToken(String refresh_token) {
+        var httpHeaders = new HttpHeaders();
+        httpHeaders.setAccept(List.of(MediaType.APPLICATION_FORM_URLENCODED));
+        var map = new LinkedMultiValueMap<String, String>();
+        map.put("client_id", List.of("account"));
+        map.put("grant_type", List.of("refresh_token"));
+        map.put("refresh_token", List.of(refresh_token));
+
+        var httpEntity = new HttpEntity<MultiValueMap<String, String>>(map, httpHeaders);
+        try {
+            var url = String.format("http://%s:%s/realms/%s/protocol/openid-connect/token",
+                    keycloakServerUrl, keycloakServerPort, keycloakApiRealm);
+            var uri = new URI(url);
+            return restTemplate.postForEntity(uri, httpEntity, KeycloakLoginResponse.class).getBody();
+        } catch (Exception e) {
+            log.error("Keycloak refresh token endpoint returned errors: {}", e.getMessage());
+            throw new BadRequestException("Invalid login credentials");
+        }
+    }
 }

@@ -5,13 +5,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class VerifyAccountActivationTokenRequest {
+public class RefreshTokenRequest {
     @NotBlank
-    @Size(max = 36)
-    private String token;
+    private String refreshToken;
 }

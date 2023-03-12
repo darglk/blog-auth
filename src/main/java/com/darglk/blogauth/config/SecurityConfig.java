@@ -52,6 +52,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public void configure(WebSecurity webSecurity) {
         webSecurity.ignoring()
                 .antMatchers("/api/v1/users/login")
+                .antMatchers("/api/v1/users/refresh")
                 .antMatchers("/api/v1/users/signup")
                 .antMatchers("/api/v1/users/account-activation/{tokenId}")
                 .antMatchers("/api/v1/users/password-reset")
@@ -65,6 +66,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .authorizeRequests()
                 .antMatchers(
                         "/api/v1/users/login",
+                        "/api/v1/users/refresh",
                         "/api/v1/users/signup",
                         "/api/v1/users/account-activation/{tokenId}",
                         "/api/v1/users/password-reset",

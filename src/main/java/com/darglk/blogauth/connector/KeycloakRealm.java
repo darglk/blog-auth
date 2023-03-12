@@ -15,7 +15,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @Profile("!test")
 public class KeycloakRealm {
-    @Value("${keycloak.admin.realm}")
+    @Value("${keycloak.api.realm}")
     private String realmName;
     private final RealmResource realm;
 

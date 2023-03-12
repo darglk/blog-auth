@@ -10,6 +10,7 @@ import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.AuthorityEntity;
 import com.darglk.blogauth.repository.entity.UserEntity;
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
+import com.darglk.blogauth.rest.model.RefreshTokenRequest;
 import com.darglk.blogcommons.model.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
@@ -197,6 +198,23 @@ public class UsersControllerTest {
                 .andExpect(status().isOk());
 
         verify(keycloakRealm, times(1)).logoutAllSessions(any());
+    }
+
+    @Test
+    public void refreshToken() throws Exception {
+        var keycloakLoginResponse = new KeycloakLoginResponse();
+        keycloakLoginResponse.setAccessToken("access_token");
+        keycloakLoginResponse.setRefreshToken("refresh_token");
+
+        when(keycloakConnector.refreshToken("refresh_token")).thenReturn(keycloakLoginResponse);
+        var refreshToken = new RefreshTokenRequest("refresh_token");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/refresh")
+                        .content(objectMapper.writeValueAsString(refreshToken))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("access_token"))
+                .andExpect(jsonPath("$.refreshToken").value("refresh_token"));
+        verify(keycloakConnector, times(1)).refreshToken("refresh_token");
     }
 
     private void createUser() {

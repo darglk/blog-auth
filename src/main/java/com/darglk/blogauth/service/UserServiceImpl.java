@@ -6,6 +6,7 @@ import com.darglk.blogauth.repository.AuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.UserEntity;
 import com.darglk.blogauth.rest.model.LoginResponse;
+import com.darglk.blogauth.rest.model.RefreshTokenRequest;
 import com.darglk.blogauth.rest.model.SignupRequest;
 import com.darglk.blogauth.rest.model.SignupResponse;
 import com.darglk.blogcommons.events.Subjects;
@@ -98,6 +99,15 @@ public class UserServiceImpl implements UsersService {
         } else {
             realm.logout(currentUser.getSessionId());
         }
+    }
+
+    @Override
+    public LoginResponse refreshToken(RefreshTokenRequest request) {
+        var response = keycloakConnector.refreshToken(request.getRefreshToken());
+        var loginResponse = new LoginResponse();
+        loginResponse.setAccessToken(response.getAccessToken());
+        loginResponse.setRefreshToken(response.getRefreshToken());
+        return loginResponse;
     }
 
     @RabbitListener(queues = "user_created")

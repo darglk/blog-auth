@@ -1,6 +1,7 @@
 package com.darglk.blogauth.rest;
 
 import com.darglk.blogauth.rest.model.LoginResponse;
+import com.darglk.blogauth.rest.model.RefreshTokenRequest;
 import com.darglk.blogauth.rest.model.SignupRequest;
 import com.darglk.blogauth.rest.model.SignupResponse;
 import com.darglk.blogauth.service.UsersService;
@@ -47,5 +48,13 @@ public class UsersController {
     @PostMapping("/logout")
     public void logout(@RequestParam(name = "all-sessions", defaultValue = "false") Boolean allSessions) {
         usersService.logout(allSessions);
+    }
+
+    @PostMapping("/refresh")
+    public LoginResponse refreshToken(@RequestBody @Valid RefreshTokenRequest request, Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ValidationException(errors);
+        }
+        return usersService.refreshToken(request);
     }
 }
