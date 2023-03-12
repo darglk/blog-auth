@@ -179,6 +179,26 @@ public class UsersControllerTest {
         verify(keycloakRealm, times(1)).createUser(any());
     }
 
+    @Test
+    public void logout_singleSession() throws Exception {
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/logout")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(keycloakRealm, times(1)).logout(any());
+    }
+
+    @Test
+    public void logout_allSessions() throws Exception {
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/logout?all-sessions=true")
+                        .header("Authorization", "Bearer " + accessToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        verify(keycloakRealm, times(1)).logoutAllSessions(any());
+    }
+
     private void createUser() {
         var authority = new AuthorityEntity();
         authority.setId("ROLE_USER");

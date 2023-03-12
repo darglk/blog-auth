@@ -12,4 +12,6 @@ public interface UsersService {
     UserResponse getUser(String id);
 
     SignupResponse signup(SignupRequest signupRequest);
+
+    void logout(Boolean allSessions);
 }

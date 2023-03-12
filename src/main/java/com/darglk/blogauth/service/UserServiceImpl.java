@@ -14,10 +14,14 @@ import com.darglk.blogcommons.exception.NotFoundException;
 import com.darglk.blogcommons.exception.ValidationException;
 import com.darglk.blogcommons.model.AuthorityResponse;
 import com.darglk.blogcommons.model.LoginRequest;
+import com.darglk.blogcommons.model.UserPrincipal;
 import com.darglk.blogcommons.model.UserResponse;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,6 +88,16 @@ public class UserServiceImpl implements UsersService {
         rabbitTemplate.convertAndSend(Subjects.UserCreated.getSubject(), userId);
 
         return new SignupResponse(userId);
+    }
+
+    @Override
+    public void logout(Boolean allSessions) {
+        var currentUser = (UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (allSessions) {
+            realm.logoutAllSessions(currentUser.getId());
+        } else {
+            realm.logout(currentUser.getSessionId());
+        }
     }
 
     @RabbitListener(queues = "user_created")

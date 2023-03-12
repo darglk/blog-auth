@@ -20,7 +20,7 @@
 		<dependency>
 			<groupId>com.darglk</groupId>
 			<artifactId>blog-commons</artifactId>
-			<version>0.0.17-SNAPSHOT</version>
+			<version>0.0.21-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
@@ -87,6 +87,14 @@
 					<to>
 						<image>darglk/blog-auth</image>
 					</to>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<source>16</source>
+					<target>16</target>
 				</configuration>
 			</plugin>
 		</plugins>

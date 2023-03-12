@@ -47,4 +47,12 @@ public class KeycloakRealm {
         userRepresentation.setCredentials(List.of(credentialsRepresentation));
         user.update(userRepresentation);
     }
+
+    public void logoutAllSessions(String userId) {
+        realm.users().get(userId).logout();
+    }
+
+    public void logout(String sid) {
+        realm.deleteSession(sid);
+    }
 }
