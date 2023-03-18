@@ -70,4 +70,13 @@ public class UsersController {
         var userId = ((UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId();
         return usersService.changePassword(request, userId);
     }
+
+    @PostMapping("/change-email")
+    public void changeEmail(@RequestBody @Valid ChangeEmailRequest request, Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ValidationException(errors);
+        }
+        var userId = ((UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId();
+        usersService.changeEmail(request, userId);
+    }
 }

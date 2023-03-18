@@ -9,11 +9,13 @@ import com.darglk.blogauth.repository.AuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.AuthorityEntity;
 import com.darglk.blogauth.repository.entity.UserEntity;
+import com.darglk.blogauth.rest.model.ChangeEmailRequest;
 import com.darglk.blogauth.rest.model.ChangePasswordRequest;
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
 import com.darglk.blogauth.rest.model.RefreshTokenRequest;
 import com.darglk.blogcommons.model.LoginRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,7 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
         classes = { BlogAuthApplication.class, TestConfiguration.class })
 @AutoConfigureMockMvc
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 @ActiveProfiles("test")
 public class UsersControllerTest {
 
@@ -142,9 +144,10 @@ public class UsersControllerTest {
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[*]", hasSize(2)))
                 .andExpect(jsonPath("$.errors.[0].field").value("password"))
-                .andExpect(jsonPath("$.errors.[0].message").value("must not be blank"));
+                .andExpect(jsonPath("$.errors.[1].field").value("password"))
+                .andExpect(jsonPath("$.errors.[*].message").value(Matchers.containsInAnyOrder("size must be between 4 and 100", "must not be blank")));
     }
 
     @Test
@@ -270,16 +273,63 @@ public class UsersControllerTest {
         assertNotEquals(oldHash, user.get().getPasswordHash());
     }
 
-    private void createUser() {
+    @Test
+    public void changeEmail_theSameEmail() throws Exception {
+        createUser();
+        var request = new ChangeEmailRequest("testing@test.com");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/change-email")
+                        .header("Authorization", "Bearer user_id:ROLE_USER")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("email"))
+                .andExpect(jsonPath("$.errors.[0].message").value("email is the same"));
+    }
+
+    @Test
+    public void changeEmail_emailTaken() throws Exception {
+        createUser();
+        createUser("second_user_id", "test2@test.com");
+        var request = new ChangeEmailRequest("test2@test.com");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/change-email")
+                        .header("Authorization", "Bearer user_id:ROLE_USER")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("email"))
+                .andExpect(jsonPath("$.errors.[0].message").value("email is taken"));
+    }
+
+    @Test
+    public void changeEmail() throws Exception {
+        createUser();
+        var request = new ChangeEmailRequest("test3@test.com");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/change-email")
+                        .header("Authorization", "Bearer user_id:ROLE_USER")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+        var user = userRepository.findById("user_id").get();
+        assertEquals("test3@test.com", user.getEmail());
+        verify(keycloakRealm, times(1)).updateEmail("test3@test.com", "user_id");
+    }
+
+    private void createUser(String userId, String email) {
         var authority = new AuthorityEntity();
         authority.setId("ROLE_USER");
         authority.setName("ROLE_USER");
         var user = new UserEntity();
-        user.setEmail("testing@test.com");
-        user.setId("user_id");
+        user.setEmail(email);
+        user.setId(userId);
         user.setPasswordHash(passwordEncoder.encode("asdf1234"));
         user.setEnabled(true);
         user.setAuthorities(List.of(authority));
         userRepository.save(user);
+    }
+
+    private void createUser() {
+        createUser("user_id", "testing@test.com");
     }
 }

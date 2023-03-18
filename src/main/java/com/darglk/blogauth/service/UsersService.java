@@ -18,4 +18,6 @@ public interface UsersService {
     void deleteAccount(String userId);
 
     LoginResponse changePassword(ChangePasswordRequest request, String userId);
+
+    void changeEmail(ChangeEmailRequest request, String userId);
 }

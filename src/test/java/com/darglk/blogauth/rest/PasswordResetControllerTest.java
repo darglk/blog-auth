@@ -13,6 +13,7 @@ import com.darglk.blogauth.rest.model.PasswordResetRequest;
 import com.darglk.blogauth.rest.model.VerifyAccountActivationTokenRequest;
 import com.darglk.blogauth.rest.model.VerifyPasswordResetTokenRequest;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ import java.util.List;
 
 import static java.time.temporal.ChronoUnit.HOURS;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -84,9 +86,9 @@ public class PasswordResetControllerTest {
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[*]", hasSize(2)))
                 .andExpect(jsonPath("$.errors.[0].field").value("email"))
-                .andExpect(jsonPath("$.errors.[0].message").value("must not be blank"));
+                .andExpect(jsonPath("$.errors.[*].message").value(Matchers.containsInAnyOrder("must not be blank", "size must be between 4 and 100")));
     }
 
     @Test
@@ -190,13 +192,15 @@ public class PasswordResetControllerTest {
     public void verifyToken() throws Exception {
         createToken();
         var request = new VerifyPasswordResetTokenRequest(token, "asdf1234");
-
+        var oldHash = userRepository.findById(userId).get().getPasswordHash();
         mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/password-reset/verify/" + tokenId)
                         .content(objectMapper.writeValueAsString(request))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
         assertTrue(passwordResetTokenRepository.findById(tokenId).isEmpty());
         verify(keycloakRealm, times(1)).updatePassword(userId, "asdf1234");
+        var user = userRepository.findById(userId).get();
+        assertNotEquals(oldHash, user.getPasswordHash());
     }
 
     private void createToken() {
@@ -214,6 +218,7 @@ public class PasswordResetControllerTest {
         authority.setName("ROLE_USER");
         var user = new UserEntity();
         user.setEmail("testing@test.com");
+        user.setPasswordHash("asdf");
         user.setId(userId);
         user.setEnabled(true);
         user.setAuthorities(List.of(authority));

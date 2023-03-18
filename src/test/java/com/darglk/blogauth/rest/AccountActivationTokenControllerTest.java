@@ -142,6 +142,7 @@ public class AccountActivationTokenControllerTest {
         user.setEmail("testing@test.com");
         user.setId(userId);
         user.setEnabled(false);
+        user.setPasswordHash("asdf");
         user.setAuthorities(List.of(authority));
         userRepository.save(user);
     }

@@ -80,6 +80,7 @@ public class UserServiceImpl implements UsersService {
         newUser.setEmail(signupRequest.getEmail());
         newUser.setEnabled(false);
         newUser.setId(userId);
+        newUser.setPasswordHash(passwordEncoder.encode(signupRequest.getPassword()));
         userRepository.save(newUser);
         var token = accountActivationTokenService.generateToken(userId);
         // TODO: pass token to message
@@ -132,6 +133,23 @@ public class UserServiceImpl implements UsersService {
         loginRequest.setPassword(request.getNewPassword());
         // TODO: notify user about new password
         return login(loginRequest);
+    }
+
+    @Override
+    @Transactional
+    public void changeEmail(ChangeEmailRequest request, String userId) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User with id: " + userId + " was not found"));
+        if (user.getEmail().equals(request.getEmail())) {
+            throw new ValidationException(List.of(new ErrorResponse("email is the same", "email")));
+        }
+        userRepository.findByEmail(request.getEmail()).ifPresent(u -> {
+            throw new ValidationException(List.of(new ErrorResponse("email is taken", "email")));
+        });
+        user.setEmail(request.getEmail());
+        userRepository.save(user);
+        realm.updateEmail(request.getEmail(), userId);
+        // TODO: notify user about changed email
     }
 
     @RabbitListener(queues = "user_created")

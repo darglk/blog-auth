@@ -59,4 +59,12 @@ public class KeycloakRealm {
     public void logout(String sid) {
         realm.deleteSession(sid);
     }
+
+    public void updateEmail(String email, String userId) {
+        var user = realm.users().get(userId);
+        var userRepresentation = user.toRepresentation();
+        userRepresentation.setUsername(email);
+        userRepresentation.setEmail(email);
+        user.update(userRepresentation);
+    }
 }
