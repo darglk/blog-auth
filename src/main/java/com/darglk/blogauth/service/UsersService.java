@@ -1,9 +1,6 @@
 package com.darglk.blogauth.service;
 
-import com.darglk.blogauth.rest.model.LoginResponse;
-import com.darglk.blogauth.rest.model.RefreshTokenRequest;
-import com.darglk.blogauth.rest.model.SignupRequest;
-import com.darglk.blogauth.rest.model.SignupResponse;
+import com.darglk.blogauth.rest.model.*;
 import com.darglk.blogcommons.model.LoginRequest;
 import com.darglk.blogcommons.model.UserResponse;
 
@@ -19,4 +16,6 @@ public interface UsersService {
     LoginResponse refreshToken(RefreshTokenRequest request);
 
     void deleteAccount(String userId);
+
+    LoginResponse changePassword(ChangePasswordRequest request, String userId);
 }

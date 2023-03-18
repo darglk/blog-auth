@@ -1,9 +1,6 @@
 package com.darglk.blogauth.rest;
 
-import com.darglk.blogauth.rest.model.LoginResponse;
-import com.darglk.blogauth.rest.model.RefreshTokenRequest;
-import com.darglk.blogauth.rest.model.SignupRequest;
-import com.darglk.blogauth.rest.model.SignupResponse;
+import com.darglk.blogauth.rest.model.*;
 import com.darglk.blogauth.service.UsersService;
 import com.darglk.blogcommons.exception.ValidationException;
 import com.darglk.blogcommons.model.LoginRequest;
@@ -63,5 +60,14 @@ public class UsersController {
     public void deleteAccount() {
         var userId = ((UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId();
         usersService.deleteAccount(userId);
+    }
+
+    @PostMapping("/change-password")
+    public LoginResponse changePassword(@RequestBody @Valid ChangePasswordRequest request, Errors errors) {
+        if (errors.hasErrors()) {
+            throw new ValidationException(errors);
+        }
+        var userId = ((UserPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId();
+        return usersService.changePassword(request, userId);
     }
 }

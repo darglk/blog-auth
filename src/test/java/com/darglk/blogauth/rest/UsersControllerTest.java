@@ -9,6 +9,7 @@ import com.darglk.blogauth.repository.AuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.AuthorityEntity;
 import com.darglk.blogauth.repository.entity.UserEntity;
+import com.darglk.blogauth.rest.model.ChangePasswordRequest;
 import com.darglk.blogauth.rest.model.KeycloakLoginResponse;
 import com.darglk.blogauth.rest.model.RefreshTokenRequest;
 import com.darglk.blogcommons.model.LoginRequest;
@@ -21,6 +22,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
@@ -29,8 +31,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
@@ -58,6 +59,8 @@ public class UsersControllerTest {
     private AuthorityRepository authorityRepository;
     @Autowired
     private AccountActivationTokenRepository accountActivationTokenRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private final String accessToken = "4a42f24d-208e-4e08-8f1f-51db0b960a4f:ROLE_USER,ROLE_ADMIN";
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -229,6 +232,44 @@ public class UsersControllerTest {
         verify(keycloakRealm, times(1)).deleteUser("user_id");
     }
 
+    @Test
+    public void changePassword_oldPasswordIncorrect() throws Exception {
+        createUser();
+        var request = new ChangePasswordRequest("asdf123", "afda3456");
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/change-password")
+                        .header("Authorization", "Bearer user_id:ROLE_USER")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.[*]", hasSize(1)))
+                .andExpect(jsonPath("$.errors.[0].field").value("oldPassword"))
+                .andExpect(jsonPath("$.errors.[0].message").value("Old password is incorrect"));
+    }
+
+    @Test
+    public void changePassword() throws Exception {
+        var keycloakLoginResponse = new KeycloakLoginResponse();
+        keycloakLoginResponse.setAccessToken("access_token");
+        keycloakLoginResponse.setRefreshToken("refresh_token");
+        when(keycloakConnector.signIn(any())).thenReturn(keycloakLoginResponse);
+        createUser();
+        var request = new ChangePasswordRequest("asdf1234", "afda3456");
+        var oldHash = userRepository.findById("user_id").get().getPasswordHash();
+        mockMvc.perform(request(HttpMethod.POST, "/api/v1/users/change-password")
+                        .header("Authorization", "Bearer user_id:ROLE_USER")
+                        .content(objectMapper.writeValueAsString(request))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("access_token"))
+                .andExpect(jsonPath("$.refreshToken").value("refresh_token"));
+
+        var user = userRepository.findById("user_id");
+        verify(keycloakRealm, times(1)).logoutAllSessions("user_id");
+        verify(keycloakRealm, times(1)).updatePassword("user_id", "afda3456");
+        verify(keycloakConnector, times(1)).signIn(any());
+        assertNotEquals(oldHash, user.get().getPasswordHash());
+    }
+
     private void createUser() {
         var authority = new AuthorityEntity();
         authority.setId("ROLE_USER");
@@ -236,6 +277,7 @@ public class UsersControllerTest {
         var user = new UserEntity();
         user.setEmail("testing@test.com");
         user.setId("user_id");
+        user.setPasswordHash(passwordEncoder.encode("asdf1234"));
         user.setEnabled(true);
         user.setAuthorities(List.of(authority));
         userRepository.save(user);

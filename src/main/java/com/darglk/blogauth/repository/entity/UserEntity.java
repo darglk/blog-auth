@@ -20,6 +20,8 @@ public class UserEntity {
     private String email;
     @Column(name = "enabled")
     private Boolean enabled;
+    @Column(name = "password_hash")
+    private String passwordHash;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(

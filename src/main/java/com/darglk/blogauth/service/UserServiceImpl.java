@@ -5,10 +5,7 @@ import com.darglk.blogauth.connector.KeycloakRealm;
 import com.darglk.blogauth.repository.AuthorityRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.UserEntity;
-import com.darglk.blogauth.rest.model.LoginResponse;
-import com.darglk.blogauth.rest.model.RefreshTokenRequest;
-import com.darglk.blogauth.rest.model.SignupRequest;
-import com.darglk.blogauth.rest.model.SignupResponse;
+import com.darglk.blogauth.rest.model.*;
 import com.darglk.blogcommons.events.Subjects;
 import com.darglk.blogcommons.exception.ErrorResponse;
 import com.darglk.blogcommons.exception.NotFoundException;
@@ -17,12 +14,11 @@ import com.darglk.blogcommons.model.AuthorityResponse;
 import com.darglk.blogcommons.model.LoginRequest;
 import com.darglk.blogcommons.model.UserPrincipal;
 import com.darglk.blogcommons.model.UserResponse;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +35,7 @@ public class UserServiceImpl implements UsersService {
     private final AuthorityRepository authorityRepository;
     private final RabbitTemplate rabbitTemplate;
     private final AccountActivationTokenService accountActivationTokenService;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public LoginResponse login(LoginRequest loginRequest) {
@@ -116,6 +113,25 @@ public class UserServiceImpl implements UsersService {
         userRepository.deleteById(userId);
         realm.deleteUser(userId);
         // TODO: send message to queue
+    }
+
+    @Override
+    @Transactional
+    public LoginResponse changePassword(ChangePasswordRequest request, String userId) {
+        var user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("User with id: " + userId + " was not found"));
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new ValidationException(List.of(new ErrorResponse("Old password is incorrect", "oldPassword")));
+        }
+        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        realm.updatePassword(userId, request.getNewPassword());
+        realm.logoutAllSessions(userId);
+        var loginRequest = new LoginRequest();
+        loginRequest.setEmail(user.getEmail());
+        loginRequest.setPassword(request.getNewPassword());
+        // TODO: notify user about new password
+        return login(loginRequest);
     }
 
     @RabbitListener(queues = "user_created")
