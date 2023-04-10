@@ -7,6 +7,10 @@ import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.UserEntity;
 import com.darglk.blogauth.rest.model.*;
 import com.darglk.blogcommons.events.Subjects;
+import com.darglk.blogcommons.events.model.UserCreatedEvent;
+import com.darglk.blogcommons.events.model.UserDeletedEvent;
+import com.darglk.blogcommons.events.model.UserEmailChangedEvent;
+import com.darglk.blogcommons.events.model.UserPasswordChangedEvent;
 import com.darglk.blogcommons.exception.ErrorResponse;
 import com.darglk.blogcommons.exception.NotFoundException;
 import com.darglk.blogcommons.exception.ValidationException;
@@ -83,8 +87,7 @@ public class UserServiceImpl implements UsersService {
         newUser.setPasswordHash(passwordEncoder.encode(signupRequest.getPassword()));
         userRepository.save(newUser);
         var token = accountActivationTokenService.generateToken(userId);
-        // TODO: pass token to message
-        rabbitTemplate.convertAndSend(Subjects.UserCreated.getSubject(), userId);
+        rabbitTemplate.convertAndSend(Subjects.USER_CREATED_QUEUE, new UserCreatedEvent(userId, newUser.getEmail(), token));
 
         return new SignupResponse(userId);
     }
@@ -113,7 +116,7 @@ public class UserServiceImpl implements UsersService {
     public void deleteAccount(String userId) {
         userRepository.deleteById(userId);
         realm.deleteUser(userId);
-        // TODO: send message to queue
+        rabbitTemplate.convertAndSend(Subjects.USER_DELETED_QUEUE, new UserDeletedEvent(userId));
     }
 
     @Override
@@ -131,7 +134,7 @@ public class UserServiceImpl implements UsersService {
         var loginRequest = new LoginRequest();
         loginRequest.setEmail(user.getEmail());
         loginRequest.setPassword(request.getNewPassword());
-        // TODO: notify user about new password
+        rabbitTemplate.convertAndSend(Subjects.USER_PASSWORD_CHANGED_QUEUE, new UserPasswordChangedEvent(userId));
         return login(loginRequest);
     }
 
@@ -149,7 +152,9 @@ public class UserServiceImpl implements UsersService {
         user.setEmail(request.getEmail());
         userRepository.save(user);
         realm.updateEmail(request.getEmail(), userId);
-        // TODO: notify user about changed email
+        rabbitTemplate.convertAndSend(Subjects.USER_EMAIL_CHANGED_QUEUE, new UserEmailChangedEvent(
+                userId, user.getEmail(), request.getEmail()
+        ));
     }
 
     @RabbitListener(queues = "user_created")

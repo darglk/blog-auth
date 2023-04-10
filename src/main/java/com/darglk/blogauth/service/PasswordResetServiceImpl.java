@@ -6,12 +6,15 @@ import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.PasswordResetTokenEntity;
 import com.darglk.blogauth.rest.model.PasswordResetRequest;
 import com.darglk.blogauth.rest.model.VerifyPasswordResetTokenRequest;
+import com.darglk.blogcommons.events.Subjects;
+import com.darglk.blogcommons.events.model.UserPasswordResetEvent;
 import com.darglk.blogcommons.exception.BadRequestException;
 import com.darglk.blogcommons.exception.ErrorResponse;
 import com.darglk.blogcommons.exception.NotFoundException;
 import com.darglk.blogcommons.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -34,6 +37,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
     private final UserRepository userRepository;
     private final KeycloakRealm keycloakRealm;
     private final PasswordEncoder passwordEncoder;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     @Transactional
@@ -44,14 +48,16 @@ public class PasswordResetServiceImpl implements PasswordResetService {
             return;
         }
         var userId = user.get().getId();
+        var passwordResetTokenId = UUID.randomUUID().toString();
+        var token = UUID.randomUUID().toString();
         passwordResetTokenRepository.deleteByUserId(userId);
         var passwordResetToken = new PasswordResetTokenEntity();
         passwordResetToken.setToken(UUID.randomUUID().toString());
-        passwordResetToken.setId(UUID.randomUUID().toString());
+        passwordResetToken.setId(passwordResetTokenId);
         passwordResetToken.setUserId(userId);
         passwordResetToken.setCreatedAt(Instant.now());
-        // TODO: send notification to provided email
         passwordResetTokenRepository.save(passwordResetToken);
+        rabbitTemplate.convertAndSend(Subjects.USER_PASSWORD_RESET_QUEUE, new UserPasswordResetEvent(userId, passwordResetTokenId, token));
     }
 
     @Override

@@ -34,6 +34,6 @@ public class RabbitConfiguration {
 
     @Bean
     public Queue userCreatedQueue() {
-       return new Queue(Subjects.UserCreated.getSubject());
+       return new Queue(Subjects.USER_CREATED_QUEUE);
     }
 }

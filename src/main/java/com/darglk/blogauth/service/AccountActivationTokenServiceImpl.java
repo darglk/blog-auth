@@ -3,11 +3,15 @@ package com.darglk.blogauth.service;
 import com.darglk.blogauth.repository.AccountActivationTokenRepository;
 import com.darglk.blogauth.repository.UserRepository;
 import com.darglk.blogauth.repository.entity.AccountActivationTokenEntity;
+import com.darglk.blogcommons.events.Subjects;
+import com.darglk.blogcommons.events.model.UserAccountActivatedEvent;
+import com.darglk.blogcommons.events.model.UserDeletedEvent;
 import com.darglk.blogcommons.exception.ErrorResponse;
 import com.darglk.blogcommons.exception.NotFoundException;
 import com.darglk.blogcommons.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,6 +31,7 @@ public class AccountActivationTokenServiceImpl implements AccountActivationToken
     private Long accountExpirationHours;
     private final AccountActivationTokenRepository accountActivationTokenRepository;
     private final UserRepository userRepository;
+    private final RabbitTemplate rabbitTemplate;
 
     @Override
     @Transactional
@@ -38,8 +43,6 @@ public class AccountActivationTokenServiceImpl implements AccountActivationToken
         token.setCreatedAt(Instant.now());
         token.setUserId(userId);
         accountActivationTokenRepository.save(token);
-        // TODO send message to notification service
-
         return token.getId();
     }
 
@@ -55,7 +58,7 @@ public class AccountActivationTokenServiceImpl implements AccountActivationToken
         var userId = accountActivationToken.getUserId();
         accountActivationTokenRepository.deleteByUserId(userId);
         if (accountActivationToken.getCreatedAt().plus(accountExpirationHours, HOURS).isBefore(Instant.now())) {
-            // TODO notify user
+            rabbitTemplate.convertAndSend(Subjects.USER_DELETED_QUEUE, new UserDeletedEvent(userId));
             userRepository.deleteById(userId);
             throw new ValidationException(List.of(new ErrorResponse("Token is expired", "token")));
         }
@@ -63,5 +66,6 @@ public class AccountActivationTokenServiceImpl implements AccountActivationToken
                 .orElseThrow(() -> new NotFoundException("Not found user with id: " + userId));
         user.setEnabled(true);
         userRepository.save(user);
+        rabbitTemplate.convertAndSend(Subjects.USER_ACCOUNT_ACTIVATION_DONE_QUEUE, new UserAccountActivatedEvent(userId));
     }
 }
